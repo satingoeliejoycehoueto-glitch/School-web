@@ -1,0 +1,111 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Role {
+  id   Int    @id @default(autoincrement())
+  name String @unique
+  users User[]
+}
+
+model User {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email        String   @unique
+  passwordHash String
+  fullName     String?
+  roleId       Int
+  role         Role     @relation(fields: [roleId], references: [id])
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  classes      Class[]  @relation("TeacherClasses")
+  activity     ActivityLog[]
+}
+
+model Student {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  firstName  String
+  lastName   String
+  dob        DateTime?
+  gender     String?
+  photoUrl   String?
+  parentUserId String? @db.Uuid
+  enrollments Enrollment[]
+  grades     Grade[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Class {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String
+  level     String?
+  teacherId String?  @db.Uuid
+  teacher   User?    @relation("TeacherClasses", fields: [teacherId], references: [id])
+  assignments Assignment[]
+  enrollments Enrollment[]
+  createdAt DateTime @default(now())
+}
+
+model Subject {
+  id   String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name String
+  assignments Assignment[]
+}
+
+model Enrollment {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  student      Student  @relation(fields: [studentId], references: [id])
+  studentId    String   @db.Uuid
+  classRef     Class    @relation(fields: [classId], references: [id])
+  classId      String   @db.Uuid
+  academicYear String
+  attendance   Attendance[]
+  createdAt    DateTime @default(now())
+}
+
+model Attendance {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  enrollment   Enrollment @relation(fields: [enrollmentId], references: [id])
+  enrollmentId String   @db.Uuid
+  date         DateTime
+  status       String
+  markedBy     String?  @db.Uuid
+  remarks      String?
+  createdAt    DateTime @default(now())
+}
+
+model Assignment {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  classRef  Class    @relation(fields: [classId], references: [id])
+  classId   String   @db.Uuid
+  subject   Subject  @relation(fields: [subjectId], references: [id])
+  subjectId String   @db.Uuid
+  title     String
+  maxScore  Float    @default(100)
+  date      DateTime?
+  grades    Grade[]
+}
+
+model Grade {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  assignment   Assignment @relation(fields: [assignmentId], references: [id])
+  assignmentId String   @db.Uuid
+  student      Student  @relation(fields: [studentId], references: [id])
+  studentId    String   @db.Uuid
+  score        Float?
+  createdAt    DateTime @default(now())
+}
+
+model ActivityLog {
+  id        Int      @id @default(autoincrement())
+  userId    String?  @db.Uuid
+  action    String
+  details   Json?
+  createdAt DateTime @default(now())
+  user      User?    @relation(fields: [userId], references: [id])
+}
